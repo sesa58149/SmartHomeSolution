@@ -1,0 +1,3 @@
+smartSensorSlave
+smartSensorMaster
+smartHomeServer
