@@ -1,0 +1,1 @@
+ESP NOW + MQTT ( to configure and control the sensorSlave)
