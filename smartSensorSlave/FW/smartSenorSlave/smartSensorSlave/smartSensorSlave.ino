@@ -5,6 +5,8 @@
 #include "slaveEspNowPdu.h"
 configManager confMgr;
 
+#define FW_VER  "0.0.001"
+
 void printDevInfo(SLAVE_CONF * info);
 
 void printDevInfo(SLAVE_CONF * info)
@@ -110,7 +112,7 @@ void setup() {
   initKHomeEspNow();
 
   delay(1000);
-  slaveSendData(bMac, (WS_UINT8*)"Hello world", 12 );
+  sendIamMsg(bMac);
 
   delay(1000);
    
@@ -136,15 +138,87 @@ void writeDevConf()
   slaveWriteDevConf(&conf);
 }
 
+WS_SINT32 readGPIO( WS_UINT8 pinId )
+{
+  WS_SINT32 retVal = WS_ERROR;
+  if (getComSts() == COM_STS_AVAILABLE)
+  {
+    slaveGpioRead(bMac,pinId);
+    delay(500);
+    Serial.println("***** Read command sent******************");
+    for (int i=0; i<10; i++);
+    {
+      if (getComSts() == COM_STS_AVAILABLE) // not busy
+      {
+        retVal = WS_SUCCESS;
+        Serial.println("***** Read GIPO received******************");
+        return retVal;
+      }        
+        delay(100);
+    }
+    
+  }  
+  setComSts(COM_STS_AVAILABLE); // free the channel in case repsonse not recive from the server to avoid infinite waiting 
+  return retVal;
+}
+WS_SINT32 writeGPIO( WS_UINT8 pinId, WS_BOOL pinVal)
+{
+  WS_SINT32 retVal = WS_ERROR; 
+  if (getComSts() == COM_STS_AVAILABLE)
+  {
+    slaveGpioWrite(bMac, pinId , pinVal);
+    delay(500);
+    Serial.println("***** Write command sent******************");
+    for (int i=0; i<10; i++);
+    {
+      if (getComSts() == COM_STS_AVAILABLE) // not busy
+      {
+        retVal = WS_SUCCESS;
+        Serial.println("***** write GIPO success******************");
+        return retVal;
+      }        
+        delay(100);
+    }    
+  }  
+  setComSts(COM_STS_AVAILABLE); // free the channel in case repsonse not recive from the server to avoid infinite waiting 
+  return retVal;
+}
+#define GPIO_LOAD_CON_PIN_NUM  0x04
+#define MAX_RETRY 5
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("***** Slave Started******************");
+  WS_BOOL isOn = true; // On
+  WS_SINT32 retVal;
+  int reTry = 0;
+  Serial.println("***** Slave  Device Started ******************");
+  Serial.println("FW version : ");
+  Serial.println(FW_VER);
   while(1)
-  {
-    //slaveSendData(bMac, (WS_UINT8*)"Hello world", 12 );
-    //slaveSendWhoIs();
-    //writeDevConf();
-    delay(100);
+  {    
+    do {
+      retVal = readGPIO(0xFF);
+      delay(100);
+      reTry++;
+    }while( retVal != WS_SUCCESS && reTry < MAX_RETRY);
+
+    GPIO_RESPONSE_BUFFER *gpioInfo = getGpioResponse();
+    releaeGipoResponse();
+    if (gpioInfo->isValid == true)
+    {
+      if( (gpioInfo->pinVal[0]) & (1 << GPIO_LOAD_CON_PIN_NUM) )
+      {
+        isOn = false;  // toggle the bit
+      }
+      reTry = 0;
+      do {
+        retVal = writeGPIO(GPIO_LOAD_CON_PIN_NUM, isOn);
+        delay(100);
+        reTry++;
+      }while( retVal != WS_SUCCESS && reTry < MAX_RETRY);      
+      
+    }    
+    delay(500);
+    ESP.deepSleep(0);
   }
 
 }

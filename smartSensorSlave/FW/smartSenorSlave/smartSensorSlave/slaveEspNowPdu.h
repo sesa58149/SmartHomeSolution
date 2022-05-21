@@ -3,6 +3,13 @@
 
 #include "userDef.h"
 #include "slaveConfMgr.h"
+#include "slaveDIO.h"
+
+typedef enum
+{
+  COM_STS_AVAILABLE=0,
+  COM_STS_BUSY
+}COM_STS;
 
 typedef enum
 {
@@ -38,6 +45,13 @@ WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff);
 
 WS_SINT32 slaveSendWhoIs();
 WS_SINT32 slaveWriteDevConf(SLAVE_CONF* conf);
+WS_SINT32 slaveGpioRead( WS_UINT8 *mAdd, WS_UINT8 pinId);
+WS_SINT32 slaveGpioWrite(WS_UINT8 *mAdd, WS_UINT8 pinId  , WS_BOOL  isOn);
+void sendIamMsg(WS_UINT8 *mAdd);
+COM_STS getComSts();
+void setComSts(COM_STS sts);
+GPIO_RESPONSE_BUFFER * getGpioResponse();
+void releaeGipoResponse();
 
 /*
 OPCODE,LEN, DATA

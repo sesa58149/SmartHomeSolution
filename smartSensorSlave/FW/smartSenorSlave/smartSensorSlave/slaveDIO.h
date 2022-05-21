@@ -2,6 +2,12 @@
 #define _SLAVEDIO_H
 #include "userDef.h"
 
+typedef struct
+{
+  WS_UINT8 isValid;
+  WS_UINT8 pinId;
+  WS_UINT8 pinVal[2];
+}GPIO_RESPONSE_BUFFER;
 // read GPIO n
 // nIO = gpio number/0xff (complete gpio max=16) 
 // *input == return buffer of 2 bytes
