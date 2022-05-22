@@ -5,7 +5,7 @@
 #include "slaveEspNowPdu.h"
 configManager confMgr;
 
-#define FW_VER  "0.0.001"
+#define FW_VER  "0.0.002"
 
 void printDevInfo(SLAVE_CONF * info);
 
@@ -144,17 +144,17 @@ WS_SINT32 readGPIO( WS_UINT8 pinId )
   if (getComSts() == COM_STS_AVAILABLE)
   {
     slaveGpioRead(bMac,pinId);
-    delay(500);
-    Serial.println("***** Read command sent******************");
+    delay(1000);
+    //Serial.println("***** Read command sent******************");
     for (int i=0; i<10; i++);
     {
       if (getComSts() == COM_STS_AVAILABLE) // not busy
       {
         retVal = WS_SUCCESS;
-        Serial.println("***** Read GIPO received******************");
+       Serial.println("***** Read GIPO Success******************");
         return retVal;
       }        
-        delay(100);
+        delay(200);
     }
     
   }  
@@ -168,7 +168,7 @@ WS_SINT32 writeGPIO( WS_UINT8 pinId, WS_BOOL pinVal)
   {
     slaveGpioWrite(bMac, pinId , pinVal);
     delay(500);
-    Serial.println("***** Write command sent******************");
+    //Serial.println("***** Write command sent******************");
     for (int i=0; i<10; i++);
     {
       if (getComSts() == COM_STS_AVAILABLE) // not busy
@@ -177,7 +177,7 @@ WS_SINT32 writeGPIO( WS_UINT8 pinId, WS_BOOL pinVal)
         Serial.println("***** write GIPO success******************");
         return retVal;
       }        
-        delay(100);
+        delay(200);
     }    
   }  
   setComSts(COM_STS_AVAILABLE); // free the channel in case repsonse not recive from the server to avoid infinite waiting 
@@ -191,7 +191,7 @@ void loop() {
   WS_SINT32 retVal;
   int reTry = 0;
   Serial.println("***** Slave  Device Started ******************");
-  Serial.println("FW version : ");
+  Serial.print("FW version : ");
   Serial.println(FW_VER);
   while(1)
   {    
@@ -201,13 +201,21 @@ void loop() {
       reTry++;
     }while( retVal != WS_SUCCESS && reTry < MAX_RETRY);
 
-    GPIO_RESPONSE_BUFFER *gpioInfo = getGpioResponse();
-    releaeGipoResponse();
+    GPIO_RESPONSE_BUFFER *gpioInfo = getGpioResponse();    
     if (gpioInfo->isValid == true)
     {
+      //Serial.print(" Read GPIO val : ");
+      //Serial.print(gpioInfo->pinVal[0], HEX);
+      //Serial.print(" : ");
+      //Serial.println(gpioInfo->pinVal[1], HEX);
       if( (gpioInfo->pinVal[0]) & (1 << GPIO_LOAD_CON_PIN_NUM) )
       {
         isOn = false;  // toggle the bit
+        Serial.println( " Turn ON >> Turn OFF");
+      }
+      else
+      {
+        Serial.println( " Turn OFF >> Turn ON");
       }
       reTry = 0;
       do {
@@ -217,6 +225,7 @@ void loop() {
       }while( retVal != WS_SUCCESS && reTry < MAX_RETRY);      
       
     }    
+    releaeGipoResponse();
     delay(500);
     ESP.deepSleep(0);
   }

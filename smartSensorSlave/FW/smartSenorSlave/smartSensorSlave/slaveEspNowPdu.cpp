@@ -12,7 +12,7 @@ extern WS_UINT8 bMac[6];
 GPIO_RESPONSE_BUFFER gpioResBuff = { 0,0,0,0};
 COM_STS comStatus = COM_STS_AVAILABLE;
 extern void printDevInfo(SLAVE_CONF * info);
-
+void printESPBuff(WS_UINT8* buff);
 void releaeGipoResponse()
 {
   gpioResBuff.isValid = false;
@@ -54,7 +54,7 @@ WS_SINT32 encodeReadDIOReq( WS_UINT8* dstBuf, WS_UINT8 pinId)
   dstBuf[1] = 1; // len = always 1 byte
   dstBuf[2] = pinId; 
 
-  return dstBuf[1];
+  return (dstBuf[1]+sizeof(pduHeader) ); // total number of bytes to be sent
 }
 //Request [opcode|dataLen|(gpioNumber or all 0xFF)| data = 2 byte   
 WS_SINT32 encodeWriteDIOReq(WS_UINT8* dstBuf, WS_UINT8 pinId, WS_UINT16 gpioVal)
@@ -64,17 +64,28 @@ WS_SINT32 encodeWriteDIOReq(WS_UINT8* dstBuf, WS_UINT8 pinId, WS_UINT16 gpioVal)
   dstBuf[2] = pinId;
   dstBuf[3] = (WS_UINT8)(gpioVal & 0x00ff);
   dstBuf[4] = (WS_UINT8) ((gpioVal & 0xff00) >> 8);
-  return dstBuf[1];
+  return (dstBuf[1]+sizeof(pduHeader) ); // total number of bytes to be sent
 }
 void decodeReadDIOResponse(WS_UINT8* dstBuf, WS_UINT8 len)
 {
-  gpioResBuff.isValid = 0;
-  if( (dstBuf[0] == WS_SUCCESS) &&  (len == 3) )
+  gpioResBuff.isValid = 0;  
+  if( (dstBuf[0] == WS_SUCCESS) &&  (len == 4) )
   {
+    Serial.print("Gpio read response len : ");
+    Serial.println(len);
     gpioResBuff.isValid = true;
-    gpioResBuff.pinId = dstBuf[3];
-    gpioResBuff.pinVal[0] = dstBuf[4];
-    gpioResBuff.pinVal[1] = dstBuf[5]; 
+    gpioResBuff.pinId = dstBuf[1];
+    gpioResBuff.pinVal[0] = dstBuf[2];
+    gpioResBuff.pinVal[1] = dstBuf[3]; 
+    Serial.println( "gpio buffer print => ");
+    Serial.print(gpioResBuff.isValid);
+    Serial.print(":");
+    Serial.print(gpioResBuff.pinId);
+    Serial.print(":");
+    Serial.print(gpioResBuff.pinVal[0]);
+    Serial.print(":");
+    Serial.println(gpioResBuff.pinVal[1]);
+    
   }
 }
 
@@ -153,6 +164,15 @@ void sendIamMsg(WS_UINT8 *mAdd)
   slaveSendData(mAdd,responseData, resPDULen);
 }
 
+void printESPBuff(WS_UINT8* buff)
+{
+  Serial.println(buff[0], HEX);
+  Serial.println(buff[1], HEX);
+  for( int i=0 ; i< buff[1]; i++)
+  {
+    Serial.println( buff[i+2], HEX);
+  }
+}
 WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
 {
   WS_SINT32 retVal=WS_SUCCESS;
@@ -174,12 +194,14 @@ WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
       }
     }
     break;
+
     case OPCODE_READ_DIO_RES:
-    {      
-      decodeReadDIOResponse(pduData, pHeader->dataLen);      
-      setComSts(COM_STS_AVAILABLE);
-    }
+    Serial.print("read response :");
+    printESPBuff(buff);     
+    decodeReadDIOResponse(pduData, pHeader->dataLen);      
+    setComSts(COM_STS_AVAILABLE);    
     break;
+
     case OPCODE_WRITE_DIO:
     if(pHeader->dataLen == 2)
     {
@@ -189,18 +211,21 @@ WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
       {
        slaveSendData(macAdd,responseData, resPDULen);
       }
-    }
-    
+    }    
     break;
+
     case OPCODE_WRITE_DIO_RES:
-      setComSts(COM_STS_AVAILABLE);
+    printESPBuff(buff);
+    setComSts(COM_STS_AVAILABLE);
     break;
+
     case OPCODE_READ_AIO:
     break;
     case OPCODE_WRITE_AIO:
     break;
     case OPCODE_READ_DEV_INFO:
     break;
+
     case OPCODE_READ_DEV_CONF:
     Serial.println("Get Config Received ===>>");
     sConf= confMgr.getDeviceConf();
@@ -210,6 +235,7 @@ WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
        slaveSendData(macAdd,responseData, resPDULen);
     }
     break;
+
     case OPCODE_WRITE_DEV_CONF: 
     Serial.println("set Config Received ===>>");
     if(pHeader->dataLen == sizeof(SLAVE_CONF))
@@ -223,10 +249,12 @@ WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
       }
     }
     break;
+
     case OPCODE_WHOIS:
     Serial.println("Who Is Received ===>>");
     sendIamMsg(macAdd);    
     break;
+
     case OPCODE_IAM:
     Serial.println("I Am Received ===>>");
     if(pHeader->dataLen <= sizeof(SLAVE_DEVICE_INFO))
@@ -278,6 +306,7 @@ WS_SINT32 slaveGpioRead( WS_UINT8 *mAdd,  WS_UINT8 pinId)
   WS_SINT16 reqPDULen =0 ;
   WS_SINT32 retVal = WS_SUCCESS;
   reqPDULen = encodeReadDIOReq(tmpBuf, pinId);
+  //printESPBuff(tmpBuf);
   slaveSendData(mAdd,tmpBuf, reqPDULen);
   setComSts(COM_STS_BUSY);
   return retVal;
@@ -294,6 +323,7 @@ WS_SINT32 slaveGpioWrite(WS_UINT8 *mAdd, WS_UINT8 pinId  , WS_BOOL  isOn)
   } // dafult is reseted
   
   reqPDULen = encodeWriteDIOReq(tmpBuf, pinId, gpioVal);
+  //printESPBuff(tmpBuf);
   slaveSendData(mAdd,tmpBuf, reqPDULen);
   setComSts(COM_STS_BUSY);
 

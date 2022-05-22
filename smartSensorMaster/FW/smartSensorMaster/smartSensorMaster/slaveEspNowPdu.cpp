@@ -12,20 +12,21 @@ extern WS_UINT8 bMac[6];
 
 extern void printDevInfo(SLAVE_CONF * info);
 
-WS_SINT32 encodeReadDIOResponse(WS_SINT32 errCode ,WS_UINT8* dstBuf, WS_UINT8* srcBuf)
+WS_SINT32 encodeReadDIOResponse(WS_SINT32 errCode ,WS_UINT8* dstBuf, WS_UINT8 pinId, WS_UINT8* srcBuf)
 {
   
   dstBuf[0]= OPCODE_READ_DIO_RES;
   dstBuf[2] = (WS_UINT8)errCode;
+  dstBuf[3] = pinId;
   if(errCode != 0)
   {
     dstBuf[1] = 1; // 1 BYTE ERR_CODE
   }
   else
   {
-    dstBuf[1] = 3; // 1 BYTE ERR_CODE 2 BYTE GPIO STATUS
-    dstBuf[3] = srcBuf[0];
-    dstBuf[4] = srcBuf[1];
+    dstBuf[1] = 4; // 1 BYTE ERR_CODE 2 BYTE GPIO STATUS
+    dstBuf[4] = srcBuf[0];
+    dstBuf[5] = srcBuf[1];
   } 
   return (dstBuf[1]+sizeof(pduHeader) ); // total number of bytes to be sent
 }
@@ -100,6 +101,15 @@ WS_SINT32 encodeReadConf( WS_UINT8* responseData, SLAVE_CONF *sConf)
   ws_memcpy((void*)&responseData[2],(WS_UINT8*)sConf, sizeof(SLAVE_CONF));
   return (responseData[1]+sizeof(pduHeader) ); // total number of bytes to be sent 
 }
+void printESPBuff(WS_UINT8* buff)
+{
+  Serial.println(buff[0], HEX);
+  Serial.println(buff[1], HEX);
+  for( int i=0 ; i< buff[1]; i++)
+  {
+    Serial.println( buff[i+2], HEX);
+  }
+}
 
 WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
 {
@@ -112,23 +122,48 @@ WS_SINT32 parseSlaveEspNowPdu( WS_UINT8 *macAdd, WS_UINT8* buff)
   switch(pHeader->opcode)
   {
     case OPCODE_READ_DIO:
+    Serial.println(" Gpio read request:");
+    printESPBuff(buff);
     if( pHeader->dataLen == 1)
     {
-      retVal = readDio(pduData[0], tmpBuf);
-      resPDULen = encodeReadDIOResponse(retVal, responseData, tmpBuf);
-      if (resPDULen != WS_ERROR)
+      ws_memset(tmpBuf, 0, sizeof(tmpBuf));
+      if( pduData[0] == 0xFF)
+      {
+        retVal = readDioAll(tmpBuf);
+      }
+      else
+      {
+        retVal = readDioPin(pduData[0], tmpBuf);
+      }      
+      resPDULen = encodeReadDIOResponse(retVal, responseData, pduData[0], tmpBuf);
+      Serial.println(" Gpio read response:");
+      printESPBuff(responseData);
+      //Serial.print("pdu_len = ");
+      //Serial.println(resPDULen);            
+      if (resPDULen > 0)
       {
        slaveSendData(macAdd,responseData, resPDULen);
+       Serial.println("sent read gpio");
+      }
+      else
+      {
+        Serial.println("failed to sent read gpio");
       }
     }
     break;
 
     case OPCODE_WRITE_DIO:
-    if(pHeader->dataLen == 2)
+    Serial.println(" Gpio write request");
+    printESPBuff(buff);
+    if(pHeader->dataLen == 3)
     {
-      retVal = writeDio(pHeader->dataLen, pduData);
+      retVal = writeDioPin(pHeader->dataLen, pduData);
       resPDULen =encodeWriteDIOResponse(retVal,responseData) ;
-      if (resPDULen != WS_ERROR)
+       Serial.println(" Gpio write response:");
+      printESPBuff(responseData);
+      Serial.print("pdu_len = ");
+      Serial.println(resPDULen);    
+      if (resPDULen > 0)
       {
        slaveSendData(macAdd,responseData, resPDULen);
       }

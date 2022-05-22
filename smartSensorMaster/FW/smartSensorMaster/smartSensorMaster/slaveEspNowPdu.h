@@ -6,13 +6,13 @@
 
 typedef enum
 {
-  OPCODE_READ_DIO,
-  OPCODE_READ_DIO_RES,
-  OPCODE_WRITE_DIO,
-  OPCODE_WRITE_DIO_RES,
-  OPCODE_READ_AIO,
-  OPCODE_READ_AIO_RES,
-  OPCODE_WRITE_AIO,
+  OPCODE_READ_DIO,                  //0
+  OPCODE_READ_DIO_RES,              //1
+  OPCODE_WRITE_DIO,                 //2
+  OPCODE_WRITE_DIO_RES,             //3
+  OPCODE_READ_AIO,                  //4
+  OPCODE_READ_AIO_RES,              //5
+  OPCODE_WRITE_AIO,                 //6
   OPCODE_WRITE_AIO_RES,
   OPCODE_READ_DEV_INFO,
   OPCODE_READ_DEV_INFO_RES,

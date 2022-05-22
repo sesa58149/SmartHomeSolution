@@ -29,9 +29,9 @@ void onDataRecvCmd(  WS_UINT8 *macAdd,  WS_UINT8 *data, int len)
 void onDataSentCmd( WS_UINT8 *macAdd, WS_UINT8 sts)
 {
   if (sts == WS_SUCCESS)
-    Serial.println("data send successful");
+    Serial.println("data send success");
   else
-    Serial.println("data send failed");
+    Serial.println("data send fail");
 }
 WS_SINT32 initKHomeEspNow()
 {
@@ -50,11 +50,20 @@ WS_SINT32 initKHomeEspNow()
   return retVal; 
   
 }
+void printMes(WS_UINT8* buff, WS_UINT16 len)
+{
+  for(int i =0; i< len; i++)
+  {
+    Serial.println(buff[i], HEX);
+  }
+}
+
 WS_SINT32 slaveSendData(WS_UINT8* dstMac, WS_UINT8 *dataBuf, WS_UINT16 msgLen )
 {
   if( dstMac == NULL || dataBuf == NULL || msgLen > 0xFF)
     return WS_ERROR;
   esp_now_send(dstMac, dataBuf, msgLen);
-  Serial.println("data sent");
+  printMes(dataBuf, msgLen);
+  //Serial.println("data sent");
   return WS_SUCCESS;  
 }

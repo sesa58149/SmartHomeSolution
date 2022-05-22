@@ -4,7 +4,7 @@
 #include "slaveEspNow.h"
 #include "slaveEspNowPdu.h"
 configManager confMgr;
-
+#define FW_VER  "0.0.002"
 void printDevInfo(SLAVE_CONF * info);
 
 void printDevInfo(SLAVE_CONF * info)
@@ -138,11 +138,14 @@ void writeDevConf()
 
 void loop() {
   // put your main code here, to run repeatedly:
-  Serial.println("***** Slave Started******************");
+  Serial.println("***** Master  Device Started ******************");
+  Serial.print("FW version : ");
+  Serial.println(FW_VER);
   while(1)
   {
-    slaveSendWhoIs();
+    //slaveSendWhoIs();
     //writeDevConf();
+    Serial.println("**********");
     delay(10000);
   }
 
