@@ -123,12 +123,12 @@ void writeDevConf()
   conf.validStr[1] = 'S';
   conf.validStr[2] = 'H';
 
-  conf.masterMac[0] = 0X62;
-  conf.masterMac[1] = 0X39;
-  conf.masterMac[2] = 0X46;
-  conf.masterMac[3] = 0X51;
-  conf.masterMac[4] = 0X91;
-  conf.masterMac[5] = 0X40;
+  conf.masterMac[0] = 0X40;
+  conf.masterMac[1] = 0X91;
+  conf.masterMac[2] = 0X51;
+  conf.masterMac[3] = 0X46;
+  conf.masterMac[4] = 0X39;
+  conf.masterMac[5] = 0X62;
   ws_memcpy(conf.deviceName, "KSHOME_MSTR", sizeof("KSHOME_MSTR"));
   conf.deviceType = 0x1;
   conf.wifiClass = 11;

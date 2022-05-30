@@ -4,6 +4,10 @@
 #include "slaveEspNow.h"
 #include "slaveEspNowPdu.h"
 configManager confMgr;
+SLAVE_CONF *devConf = 0;
+SLAVE_DEVICE_INFO dInfo;
+WS_UINT8 bMac[6] = {0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF};
+WS_UINT8 uCastMac[6] = {0x40, 0x91,0x51, 0x46, 0x39, 0x62};
 
 #define FW_VER  "0.0.002"
 
@@ -93,11 +97,8 @@ void printDInfo(SLAVE_DEVICE_INFO *devInfo)
   Serial.println(devInfo->wifiType);
 }
 
-SLAVE_DEVICE_INFO dInfo;
-WS_UINT8 bMac[6] = {0xFF, 0xFF,0xFF, 0xFF, 0xFF, 0xFF};
 void setup() {
-  // put your setup code here, to run once:
-  SLAVE_CONF *devConf = 0;
+  // put your setup code here, to run once: 
   Serial.begin(115200);
   configManager confMgr;
   devConf = confMgr.getDeviceConf();  
@@ -143,7 +144,16 @@ WS_SINT32 readGPIO( WS_UINT8 pinId )
   WS_SINT32 retVal = WS_ERROR;
   if (getComSts() == COM_STS_AVAILABLE)
   {
-    slaveGpioRead(bMac,pinId);
+    if( pinId == 0xFF)
+    {
+      slaveGpioRead(bMac,pinId);
+    }
+    else if(pinId >= 0 && pinId < 16)
+    {
+      //slaveGpioRead(uCastMac,pinId);
+      slaveGpioRead(devConf->masterMac,pinId);
+    }
+
     delay(1000);
     //Serial.println("***** Read command sent******************");
     for (int i=0; i<10; i++);
@@ -196,7 +206,8 @@ void loop() {
   while(1)
   {    
     do {
-      retVal = readGPIO(0xFF);
+      //retVal = readGPIO(0xFF);
+      retVal = readGPIO(0x04);
       delay(100);
       reTry++;
     }while( retVal != WS_SUCCESS && reTry < MAX_RETRY);
@@ -226,7 +237,7 @@ void loop() {
       
     }    
     releaeGipoResponse();
-    delay(500);
+    delay(1000);
     ESP.deepSleep(0);
   }
 

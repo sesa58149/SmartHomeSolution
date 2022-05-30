@@ -3,6 +3,8 @@
 #include "slaveEspNow.h"
 #include "slaveEspNowPdu.h"
 extern WS_UINT8 bMac[6];
+extern WS_UINT8 uCastMac[6];
+extern  SLAVE_CONF *devConf;
 void onDataRecvCmd(  WS_UINT8 *macAdd,  WS_UINT8 *data, int len);
 void onDataSentCmd( WS_UINT8 *macAdd, WS_UINT8 sts);
 
@@ -10,10 +12,11 @@ static WS_UINT8 isDataArived = false;
 
 void onDataRecvCmd(  WS_UINT8 *macAdd,  WS_UINT8 *data, int len)
 {
+  /*
   WS_UINT8 tmpBuf[32] = { 0 };
   char tmpBuf1[32] = { 0 };
 
-  /*isDataArived = true; 
+  isDataArived = true; 
   if( len > 0xFF)
   {
     Serial.println("corrupt packet received");
@@ -44,6 +47,8 @@ WS_SINT32 initKHomeEspNow()
     esp_now_register_send_cb((esp_now_send_cb_t)onDataSentCmd);
 
     esp_now_add_peer(bMac, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+    esp_now_add_peer(devConf->masterMac, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+   // esp_now_add_peer(uCastMac, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
     
     retVal = WS_SUCCESS;
   }
