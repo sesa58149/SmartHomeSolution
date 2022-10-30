@@ -1,24 +1,29 @@
 #!/usr/bin/python3
+import os.path
 import socket
 import threading
 import time
-
+from datetime import datetime
 import numpy as np
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
 from picamera2.outputs import CircularOutput, FileOutput
 import paho.mqtt.client as mqtt
+import kshomeConfMgr
 
-mqttBrokerAdd = "192.168.1.50"
-mqttBrokerPort = 1883
-subTopic = "KSHome/Armed/camera"
-isAlrmed = False
-KSSERVER = 'KSHomePvtCloudServer.lan'
-cctvPort = 1234
-
+# device configuration
+# mqttBrokerAdd = "192.168.1.50"
+# mqttBrokerPort = 1883
+# subTopic = "KSHome/Armed/camera"
+# KSSERVER = 'KSHomePvtCloudServer.lan'
+# cctvPort = 1234
+HOME_DIR = "/usr/KSHome/"
+LOGFILE = "KSHomeLog.txt"
 MIN_PIXEL_DIFF = 15.0
 MAX_PRE_DET_WINDOW_SEC = 10
+
+# Camera configuration
 lsize = (320, 240)
 picam2 = Picamera2()
 # main={"size": (640, 480), "format": "RGB888"}
@@ -38,11 +43,30 @@ prev = None
 encoding = False
 ltime = 0
 
+isAlrmed = False
+loadDeviceConf = kshomeConfMgr.deviceConfiguration()
+
+devConf = loadDeviceConf.getConf()
+
+
+# kshomeConfMgr.printInfoconf(devConf)
+
+
+def logFile(msg):
+    fp = 0
+    if os.path.exists(HOME_DIR + LOGFILE):
+        fp = open(HOME_DIR + LOGFILE, "a")
+    else:
+        fp = open(HOME_DIR + LOGFILE, "w")
+    logMsg = msg + " : " + str(datetime.now())
+    fp.write(logMsg + "\n")
+    fp.close()
+
 
 def on_connect(client, userdata, flags, rc):
     print("Client connected to the Broker")
     if rc == 0:
-        mqttClient.subscribe("KSHome/Armed/camera", 0)
+        mqttClient.subscribe(devConf.subTopic, 0)
 
 
 def on_message(client, userdata, message):
@@ -53,7 +77,7 @@ def on_message(client, userdata, message):
     print("message topic : ", msgTopic)
     print("message qos=", message.qos)
     print("message retain flag=", message.retain)
-    if msgTopic == "KSHome/Armed/camera":
+    if msgTopic == devConf.subTopic:
         if rxMsg == "ON\r\n" or rxMsg == "on\r\n" or rxMsg == "ON" or rxMsg == "on":
             isAlrmed = True
         elif rxMsg == "OFF\r\n" or rxMsg == "off\r\n" or rxMsg == "OFF" or rxMsg == "off":
@@ -62,20 +86,12 @@ def on_message(client, userdata, message):
     print("notification status :", isAlrmed)
 
 
-mqttClient = mqtt.Client('LoftCamera')
-mqttClient.on_connect = on_connect
-mqttClient.connect(mqttBrokerAdd, mqttBrokerPort, 60)
-mqttClient.on_message = on_message
-mqttClient.publish("KSHome/Camera", "disArmed")
-mqttClient.loop_start()
-
-
 def sendFileToServer():
     retVal = False
     s = socket.socket()
     try:
-        cctvServer = socket.gethostbyname(KSSERVER)
-        s.connect((cctvServer, cctvPort))
+        cctvServer = socket.gethostbyname(devConf.cloudServerAdd)
+        s.connect((cctvServer, devConf.cloudServerPort))
         cnx = s.makefile('wb')
         lfp = open('tmp.h264', 'rb')
         cnx.write(lfp.read())
@@ -112,60 +128,54 @@ def server():
             event.wait()
 
 
+mqttClient = mqtt.Client(devConf.deviceName)
+mqttClient.on_connect = on_connect
+mqttClient.connect(devConf.mqttBrokerAdd, devConf.mqttBrokerPort, 60)
+mqttClient.on_message = on_message
+mqttClient.publish("KSHome/Camera", "disArmed")
+mqttClient.loop_start()
+
 t = threading.Thread(target=server)
 t.setDaemon(True)
 t.start()
-isStarted = False
-isEnd = False
-motionDetected = False
-captureStart = True
-waitTime = 0
+
 prev = None
 startTime = 0
+logFile("Service started ")
 
 
 def motionDetection():
-    global isStarted, motionDetected, isEnd, captureStart, prev, waitTime, startTime
+    global prev, startTime
     cur = picam2.capture_buffer("lores")
     cur = cur[:w * h].reshape(h, w)
-    if captureStart:
-        if prev is not None:
-            # Measure pixels differences between current and
-            # previous frame
-            mse = np.square(np.subtract(cur, prev)).mean()
-            if mse > MIN_PIXEL_DIFF:
-                if not isStarted:
-                    isStarted = True
-                    print("New Motion", mse)
-                    epoch = int(time.time())
-                    # circ.fileoutput = "{}.h264".format(epoch)
-                    circ.fileoutput = "tmp.h264"
-                    circ.start()
-                    startTime = time.time()
-                    motionDetected = True
-                else:
-                    if time.time() - startTime > MAX_PRE_DET_WINDOW_SEC:
-                        isEnd = True
-            else:
-                if motionDetected and isStarted and time.time() - startTime > MAX_PRE_DET_WINDOW_SEC:
-                    isEnd = True
-            if isEnd:
-                circ.stop()
-                isEnd = False
-                isStarted = False
-                motionDetected = False
-                captureStart = False
-                waitTime = time.time()
-                print("Stop recording ", time.time() - startTime)
-                sendFileToServer()
-                print("capture saved on Server")
 
-    else:  # wait for the circular buffer to fill upto window size
-        if time.time() - waitTime > MAX_PRE_DET_WINDOW_SEC:
-            captureStart = True
+    if prev is not None:
+        # Measure pixels differences between current and
+        # previous frame
+        mse = np.square(np.subtract(cur, prev)).mean()
+        if mse > MIN_PIXEL_DIFF:
+            print("New Motion", mse)
+            epoch = int(time.time())
+            # circ.fileoutput = "{}.h264".format(epoch)
+            circ.fileoutput = "tmp.h264"
+            circ.start()
+            startTime = time.time()
+            while time.time() - startTime < MAX_PRE_DET_WINDOW_SEC:
+                time.sleep(1)
+
+            circ.stop()
+            print("Stop recording ", time.time() - startTime)
+            sendFileToServer()
+            print("capture saved on Server")
+            # wait for the MAX_PRE_DET_WINDOW_SEC to get circular buffer 1/2 vedio
+            startTime = time.time()
+            while time.time() - startTime < MAX_PRE_DET_WINDOW_SEC - 1:
+                time.sleep(1)
+            cur = None  # make sure next time get latest capture not the previous detected one
+
     prev = cur
 
-#isAlrmed = True
+
 while True:
     if isAlrmed:
         motionDetection()
