@@ -43,7 +43,7 @@ def cameraInit():
     picam2.start_encoder()
 
 
-class notificationService:
+class notificationService(systemLogMng):
     def __init__(self, mqttConf):
         self.isArmed = False
         self.subList = mqttConf.subTopic
@@ -78,13 +78,30 @@ class notificationService:
         print("message topic : ", msgTopic)
         print("message qos=", message.qos)
         print("message retain flag=", message.retain)
-        if msgTopic == self.subList[0]:
-            if rxMsg == "ON\r\n" or rxMsg == "on\r\n" or rxMsg == "ON" or rxMsg == "on":
-                self.isArmed = True
-            elif rxMsg == "OFF\r\n" or rxMsg == "off\r\n" or rxMsg == "OFF" or rxMsg == "off":
-                self.isArmed = False
+        for t in self.subList:
+            if msgTopic == t:
+                if t == "doorbell/camera/motion":
+                    self.subCallbackMotion(rxMsg)
+                elif t == "doorbell/camera/armed":
+                    self.subCallbackArmed(rxMsg)
+                elif t == "doorbell/resetlogfile":
+                    self.subCallbackResetLogFile(rxMsg)
+                else:
+                    print("No subscription found ")
+            print(f"message from subscription:      {t}")
 
-        print("notification status :", self.isAlrmed)
+    def subCallbackMotion(self, rxMsg):
+        pass
+
+    def subCallbackArmed(self, rxMsg):
+        if rxMsg == "ON\r\n" or rxMsg == "on\r\n" or rxMsg == "ON" or rxMsg == "on":
+            self.isArmed = True
+        elif rxMsg == "OFF\r\n" or rxMsg == "off\r\n" or rxMsg == "OFF" or rxMsg == "off":
+            self.isArmed = False
+
+    def subCallbackResetLogFile(self, rxMsg):
+        if bool(rxMsg):
+            self.logFileReset()
 
     def armedStatus(self):
         return self.isArmed()
@@ -206,8 +223,9 @@ cameraInit()
 eventClass = notificationService(devConf)
 eventClass.startTxRx()
 
-ioHandler = IOTaskClass(eventClass)
-ioHandler.startIOTask()
+if devConf.deviceType == "Advance Camera Module":
+    ioHandler = IOTaskClass(eventClass)
+    ioHandler.startIOTask()
 
 liveVideo = videoStreaming(10001)
 liveVideo.startVideoStreaming(circ, picam2)
