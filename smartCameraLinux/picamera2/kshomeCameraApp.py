@@ -82,13 +82,17 @@ class notificationService(systemLogMng):
             if msgTopic == t:
                 if t == "doorbell/camera/motion":
                     self.subCallbackMotion(rxMsg)
+                    print(f"message from subscription:      {t}")
                 elif t == "doorbell/camera/armed":
                     self.subCallbackArmed(rxMsg)
+                    print(f"message from subscription:      {t}")
                 elif t == "doorbell/resetlogfile":
                     self.subCallbackResetLogFile(rxMsg)
+                    print(f"message from subscription:      {t}")
                 else:
                     print("No subscription found ")
-            print(f"message from subscription:      {t}")
+                    print(f"message from subscription:      {t}")
+
 
     def subCallbackMotion(self, rxMsg):
         pass
@@ -104,7 +108,7 @@ class notificationService(systemLogMng):
             self.logFileReset()
 
     def armedStatus(self):
-        return self.isArmed()
+        return self.isArmed
 
     def sendNotification(self, msg):
         self.mqttClient.publish(self.pubList[0], payload=msg, qos=0, retain=False)
@@ -120,7 +124,7 @@ class cloudServer(systemLogMng):
         s = socket.socket()
         try:
             cctvServer = socket.gethostbyname(self.add)
-            s.connect(cctvServer, self.port)
+            s.connect((cctvServer, self.port))
             cnx = s.makefile('wb')
             lfp = open('tmp.h264', 'rb')
             cnx.write(lfp.read())
@@ -172,7 +176,7 @@ class videoStreaming:
 
 class motionDetection(cloudServer):
     def __init__(self, lowSize, cloudConf):
-        cloudServer.__init__(self, cloudConf.cloudServerPort, cloudConf.cloudServerPort)
+        cloudServer.__init__(self, cloudConf.cloudServerAdd, cloudConf.cloudServerPort)
         self.prev = None
         self.startTime = 0
         self.cur = None
@@ -198,7 +202,7 @@ class motionDetection(cloudServer):
 
                 circBuf.stop()
                 print("Stop recording ", time.time() - self.startTime)
-                self.sendFileToServer()
+                self.sendFileToCloud()
                 print("capture saved on Server")
                 # wait for the MAX_PRE_DET_WINDOW_SEC to get circular buffer 1/2 vedio
                 self.startTime = time.time()
@@ -230,7 +234,7 @@ if devConf.deviceType == "Advance Camera Module":
 liveVideo = videoStreaming(10001)
 liveVideo.startVideoStreaming(circ, picam2)
 
-motionDet = motionDetection(lsize)
+motionDet = motionDetection(lsize, devConf)
 while True:
     if eventClass.armedStatus():
         motionDet.detect(picam2, circ)

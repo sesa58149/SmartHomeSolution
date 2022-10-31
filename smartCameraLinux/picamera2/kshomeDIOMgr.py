@@ -16,10 +16,11 @@ class IOTaskClass:
 
     def buttonTask(self):
         while True:
+            self.ledStatus = 0
             self.button.wait_for_press()
-            #self.condition.notify_all()
+            self.ledStatus = 2
             self.notifyCallback.sendNotification('pressed')
-            sleep(5)
+            sleep(10)
 
     def ledTask(self):
         while True:

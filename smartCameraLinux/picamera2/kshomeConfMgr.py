@@ -73,7 +73,3 @@ def printInfoconf(conf):
     print("cloud server :" + conf.cloudServerAdd)
     print("cloud port : " + str(conf.cloudServerPort))
     print("Live server Port : " + str(conf.liveCameraPort))
-
-devConf = deviceConfiguration()
-conf = devConf.getConf()
-printInfoconf(conf)
