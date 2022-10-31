@@ -1,13 +1,16 @@
 {
+	
 	"deviceInfo":{
 						"deviceName"		:  "kshome security system",
-						"deviceType"		:  "Advance Camera Module"
+						"deviceType"		:  "Advance Camera Module",
+						"minPixelDiff"		:	"15.0",
+						"maxPreDetWinSec"	:	"10"
 	},
 	"mqttInfo":{
 						"mqttBrokerAdd" 	:  "192.168.1.50",
 						"mqttBrokerPort"	:  "1883",
-						"subTopic"			:  "KSHome/doorbell/camera/motiondetection",
-						"pubTopic"			:  "KSHome/doorbell/button"
+						"subTopic"			:  ["KSHome/doorbell/camera/motiondetection"],
+						"pubTopic"			:  ["KSHome/doorbell/button"]
 	},
 	"cloudInfo": {
 						"cloudServerAdd" 	:  "KSHomePvtCloudServer.lan",
