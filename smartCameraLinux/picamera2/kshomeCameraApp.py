@@ -12,7 +12,7 @@ from picamera2.outputs import CircularOutput, FileOutput
 import paho.mqtt.client as mqtt
 import kshomeConfMgr
 from kshomeDIOMgr import IOTaskClass
-from kshomeSystemLog import systemLogMng
+from kshomeSystemLog import systemLogMng, HOME_DIR
 
 # device configuration
 # mqttBrokerAdd = "192.168.1.50"
@@ -126,7 +126,7 @@ class cloudServer(systemLogMng):
             cctvServer = socket.gethostbyname(self.add)
             s.connect((cctvServer, self.port))
             cnx = s.makefile('wb')
-            lfp = open('tmp.h264', 'rb')
+            lfp = open(HOME_DIR + 'tmp.h264', 'rb')
             cnx.write(lfp.read())
             lfp.close()
             retVal = True
@@ -194,7 +194,7 @@ class motionDetection(cloudServer):
                 print("New Motion", mse)
                 epoch = int(time.time())
                 # circ.fileoutput = "{}.h264".format(epoch)
-                circBuf.fileoutput = "tmp.h264"
+                circBuf.fileoutput = HOME_DIR + "tmp.h264"
                 circBuf.start()
                 self.startTime = time.time()
                 while time.time() - self.startTime < MAX_PRE_DET_WINDOW_SEC:
