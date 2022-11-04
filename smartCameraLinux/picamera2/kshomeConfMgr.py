@@ -1,12 +1,14 @@
 import json
 
+from kshomeSystemLog import HOME_DIR
+
 
 class deviceInfo:
     def __init__(self):
         self.deviceName = "KSHOME_DEV"
         self.deviceType = "default"
         self.minPixelDiff = 0.0
-        self.maxPreDetWinSec = 10 #sec
+        self.maxPreDetWinSec = 10  # sec
 
 
 class mqttInfo:
@@ -26,7 +28,7 @@ class cloudInfo:
 
 class deviceConfiguration(deviceInfo, mqttInfo, cloudInfo):
     def __init__(self):
-        f = open("conf.json")
+        f = open(HOME_DIR + "conf.json")
         conf = json.load(f)
         print(conf)
         f.close()
