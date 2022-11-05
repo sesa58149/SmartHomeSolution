@@ -1,0 +1,1 @@
+@reboot sleep 20 && sudo python3 /home/kshome/app/kshomeCameraApp.py &

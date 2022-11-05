@@ -1,4 +1,4 @@
-HOME_DIR = "/usr/KSHome/"
+HOME_DIR = "/home/kshome/app/"
 LOGFILE = "KSHomeLog.txt"
 import os
 from datetime import datetime

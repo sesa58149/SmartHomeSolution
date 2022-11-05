@@ -14,14 +14,6 @@ import kshomeConfMgr
 from kshomeDIOMgr import IOTaskClass
 from kshomeSystemLog import systemLogMng, HOME_DIR
 
-# device configuration
-# mqttBrokerAdd = "192.168.1.50"
-# mqttBrokerPort = 1883
-# subTopic = "KSHome/Armed/camera"
-# KSSERVER = 'KSHomePvtCloudServer.lan'
-# cctvPort = 1234
-
-
 # Camera configuration
 lsize = (320, 240)
 picam2 = Picamera2()
@@ -66,6 +58,7 @@ class notificationService(systemLogMng):
 
     def on_connect(self, client, userdata, flags, rc):
         print("Client connected to the Broker")
+        self.logFile("Client connected to the Broker")
         if rc == 0:
             for s in self.subList:
                 self.mqttClient.subscribe(s, 0)
@@ -73,11 +66,12 @@ class notificationService(systemLogMng):
     def on_message(self, client, userdata, message):
 
         rxMsg = str(message.payload.decode("utf-8"))
-        print("message received : ", rxMsg)
+        #print("message received : ", rxMsg)
         msgTopic = message.topic
-        print("message topic : ", msgTopic)
-        print("message qos=", message.qos)
-        print("message retain flag=", message.retain)
+        # print("message topic : ", msgTopic)
+        # print("message qos=", message.qos)
+        # print("message retain flag=", message.retain)
+        self.logFile("Topic received")
         for t in self.subList:
             if msgTopic == t:
                 if t == "doorbell/camera/motion":
@@ -130,12 +124,12 @@ class cloudServer(systemLogMng):
             cnx.write(lfp.read())
             lfp.close()
             retVal = True
-
+            self.logFile('file sent to Cloud')
         except socket.error as exception:
             if exception.errno == errno.ECONNREFUSED:
                 retVal = False
-            print("failed to send over NW")
-            self.logFile('failed to send over NW')
+            #print("failed to send over NW")
+            #self.logFile('failed to send over NW')
 
         finally:
             s.close()
@@ -143,7 +137,7 @@ class cloudServer(systemLogMng):
         return retVal
 
 
-class videoStreaming:
+class videoStreaming(systemLogMng):
     def __init__(self, port):
         self.streamThread = None
         self.circularBuf = None
@@ -157,6 +151,7 @@ class videoStreaming:
             sock.listen()
             while tup := sock.accept():
                 print("connection accepted")
+                self.logFile("Connection accepted")
                 event = threading.Event()
                 conn, addr = tup
                 stream = conn.makefile("wb")
@@ -220,7 +215,7 @@ MIN_PIXEL_DIFF = devConf.minPixelDiff
 MAX_PRE_DET_WINDOW_SEC = devConf.maxPreDetWinSec
 
 sysLog = systemLogMng()
-sysLog.logFile("Service started ")
+sysLog.logFile("Service starting ........ ")
 
 cameraInit()
 
@@ -235,6 +230,8 @@ liveVideo = videoStreaming(10001)
 liveVideo.startVideoStreaming(circ, picam2)
 
 motionDet = motionDetection(lsize, devConf)
+sysLog.logFile("Service started ")
+
 while True:
     if eventClass.armedStatus():
         motionDet.detect(picam2, circ)
@@ -242,3 +239,4 @@ while True:
         time.sleep(5)
         print("camera is unalrmed")
 picam2.stop_encoder()
+sysLog.logFile("Service Died ")
