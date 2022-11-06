@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os.path
 import socket
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -44,6 +45,7 @@ class notificationService(systemLogMng):
         self.mqttClient.on_connect = self.on_connect
         self.mqttClient.on_message = self.on_message
         self.mqttClient.connect(devConf.mqttBrokerAdd, devConf.mqttBrokerPort, 60)
+        self.deviceName = mqttConf.deviceName
 
     def startTxRx(self):
         self.mqttClient.loop_start()
@@ -66,7 +68,7 @@ class notificationService(systemLogMng):
     def on_message(self, client, userdata, message):
 
         rxMsg = str(message.payload.decode("utf-8"))
-        #print("message received : ", rxMsg)
+        # print("message received : ", rxMsg)
         msgTopic = message.topic
         # print("message topic : ", msgTopic)
         # print("message qos=", message.qos)
@@ -74,19 +76,18 @@ class notificationService(systemLogMng):
         self.logFile("Topic received")
         for t in self.subList:
             if msgTopic == t:
-                if t == "doorbell/camera/motion":
+                if t == self.deviceName + "/camera/motion":
                     self.subCallbackMotion(rxMsg)
                     print(f"message from subscription:      {t}")
-                elif t == "doorbell/camera/armed":
+                elif t == self.deviceName + "/camera/armed":
                     self.subCallbackArmed(rxMsg)
                     print(f"message from subscription:      {t}")
-                elif t == "doorbell/resetlogfile":
+                elif t == self.deviceName + "/resetlogfile":
                     self.subCallbackResetLogFile(rxMsg)
                     print(f"message from subscription:      {t}")
                 else:
                     print("No subscription found ")
                     print(f"message from subscription:      {t}")
-
 
     def subCallbackMotion(self, rxMsg):
         pass
@@ -128,8 +129,8 @@ class cloudServer(systemLogMng):
         except socket.error as exception:
             if exception.errno == errno.ECONNREFUSED:
                 retVal = False
-            #print("failed to send over NW")
-            #self.logFile('failed to send over NW')
+            # print("failed to send over NW")
+            # self.logFile('failed to send over NW')
 
         finally:
             s.close()
@@ -208,9 +209,31 @@ class motionDetection(cloudServer):
         self.prev = self.cur
 
 
+def checkDeviceInfo(Conf):
+    updateNeed = False
+    conf = kshomeConfMgr.deviceConfiguration()
+    print(conf.deviceName)
+    f = open("/etc/hostname", "r")
+
+    if conf.deviceName + "\n" == f.readlines()[0]:
+        print("host name is correct")
+        updateNeed = False
+    else:
+        print("need to update the  host name")
+        updateNeed = True
+    f.close()
+
+    if updateNeed:
+        f = open("/etc/hostname", "w")
+        f.write(conf.deviceName + "\n")
+        f.close()
+        process = subprocess.Popen(["sudo", "reboot"])
+
+
 loadDeviceConf = kshomeConfMgr.deviceConfiguration()
 devConf = loadDeviceConf.getConf()
 
+checkDeviceInfo(devConf)
 MIN_PIXEL_DIFF = devConf.minPixelDiff
 MAX_PRE_DET_WINDOW_SEC = devConf.maxPreDetWinSec
 
