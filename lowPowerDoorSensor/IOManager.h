@@ -14,12 +14,20 @@ typedef enum
 #define PIN_UNDEF 0xFF
 #define PIN_VAL_UNDEF 0xFF
 
+typedef struct
+{
+  int adcBits;
+  float vccRef;
+}analogProperties;
+
 class ioInterface
 {
   protected:
   int pinNo;
   int pinDir;
   int pinLastValue; 
+  analogProperties acdProp;
+  float adcFactor;
 
 
   public:
@@ -27,12 +35,23 @@ class ioInterface
      pinNo = PIN_UNDEF ;
      pinDir = PIN_DIR_UNDEF;
      pinLastValue = PIN_VAL_UNDEF;
+     acdProp={0,0};
   }
   ioInterface(int pinN, PIN_DIR dir){
     pinNo=pinN;
     pinDir = dir;
+    if( pinDir ==  PIN_DIR_OUT)
+    {
+      pinMode(pinN, OUTPUT);
+    }
     pinLastValue = PIN_VAL_UNDEF;
+    acdProp = {0,0};
+    adcFactor = (float) PIN_VAL_UNDEF;
   } 
+
+  int setAdcProperty(analogProperties *adcP);
+  float getAdcPinVal();
+
   int pinRead();
   int pinWrite( int val);
   int getLastVal();

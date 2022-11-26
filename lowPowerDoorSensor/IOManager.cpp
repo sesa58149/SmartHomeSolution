@@ -32,6 +32,28 @@ int ioInterface::setLastVal(int val)
   return retVal;
 }
 
+int ioInterface:: setAdcProperty(analogProperties *adcP)
+{
+  
+  float adcMax = float(1 << adcP->adcBits);
+  adcFactor = (adcP->vccRef/adcMax);
+  return 0;
+}
+
+ float ioInterface::getAdcPinVal()
+ {
+   float v  = 0.0;
+   if( adcFactor != PIN_VAL_UNDEF)
+   {
+      float val = analogRead(pinNo);
+      Serial.print("ADC readring    = ");
+      Serial.println(val);
+      v = val*adcFactor;
+      Serial.print("ADC read voltage   =  ");
+      Serial.println(v); 
+   }
+    return v;
+ }
 
 /**********************************************************************************/
 
