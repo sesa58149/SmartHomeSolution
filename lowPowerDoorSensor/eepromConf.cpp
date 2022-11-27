@@ -2,7 +2,7 @@
 
 int deviceConf::getDevConf(eepromConf* rConf)
 {
-  //EEPROM.get(0, &devConf);
+  EEPROM.get(0, devConf);
   if(devConf.valid != 0xA5)
   {
     Serial.println("not a valid configuration");
@@ -20,16 +20,9 @@ int deviceConf::setDevConf (eepromConf *dConf)
 
 int deviceConf::saveOnEeprom()
 {
-  //EEPROM.put(0, devConf);
- // bool ok = EEPROM.commit();
- // Serial.println((ok) ? "Second commit OK" : "Commit failed");
-  return 0;
-}
-
-int deviceConf::readFromEeprom(deviceConf* dconf,int len)
-{
-  //EEPROM.get(0, devConf);
-  memcpy((void*)dconf, (void*) &devConf, sizeof(eepromConf));
+  EEPROM.put(0, devConf);
+  bool ok = EEPROM.commit();
+  Serial.println((ok) ? "Second commit OK" : "Commit failed");
   return 0;
 }
 
@@ -38,6 +31,8 @@ int deviceConf:: setDefaultValue()
   devConf.valid = 0xFF;
   memcpy((void*)&devConf.name, (void*)"KSHome_sensor", sizeof("KSHome_sensor"));
   memcpy((void*)&devConf.ssid, (void*)"subhSpec",sizeof("subhSpec"));
-  memcpy((void*)&devConf.pass,(void*)"pawan@158",sizeof("pawan@158"));  
+  memcpy((void*)&devConf.pass,(void*)"pawan@158",sizeof("pawan@158")); 
+  memcpy( (void*)&devConf.mqttBrokerinfo.mqttBrokerAdd, "192.168.1.50", sizeof("192.168.1.50") );
+  devConf.mqttBrokerinfo.mqttBrokerPort = 1883; 
   return 0;
 }

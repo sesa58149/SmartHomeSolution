@@ -46,11 +46,11 @@ int ioInterface:: setAdcProperty(analogProperties *adcP)
    if( adcFactor != PIN_VAL_UNDEF)
    {
       float val = analogRead(pinNo);
-      Serial.print("ADC readring    = ");
-      Serial.println(val);
-      v = val*adcFactor;
-      Serial.print("ADC read voltage   =  ");
-      Serial.println(v); 
+      // Serial.print("ADC readring    = ");
+      // Serial.println(val);
+       v = val*adcFactor;
+      // Serial.print("ADC read voltage   =  ");
+      // Serial.println(v); 
    }
     return v;
  }
@@ -78,8 +78,8 @@ bool inputOutput::isInputChanged()
   bool retVal = false;
   
   int pinVal = pinRead();
-  Serial.print( "Input pin val    ");
-  Serial.println(pinVal);
+  // Serial.print( "Input pin val    ");
+  // Serial.println(pinVal);
   if(pinVal != pinLastValue) 
   {
     pinLastValue = pinVal;

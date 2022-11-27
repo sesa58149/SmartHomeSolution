@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 #include <type_traits>
 #ifndef _INOUT_OP__
 #define _INOUT_OP__
@@ -28,6 +29,7 @@ class ioInterface
   int pinLastValue; 
   analogProperties acdProp;
   float adcFactor;
+  char name[32];
 
 
   public:
@@ -36,8 +38,9 @@ class ioInterface
      pinDir = PIN_DIR_UNDEF;
      pinLastValue = PIN_VAL_UNDEF;
      acdProp={0,0};
+     memcpy((void*) &name[0], "sensor_name", sizeof("sensor_name"));
   }
-  ioInterface(int pinN, PIN_DIR dir){
+  ioInterface(char* pinName, int pinN, PIN_DIR dir){
     pinNo=pinN;
     pinDir = dir;
     if( pinDir ==  PIN_DIR_OUT)
@@ -47,7 +50,14 @@ class ioInterface
     pinLastValue = PIN_VAL_UNDEF;
     acdProp = {0,0};
     adcFactor = (float) PIN_VAL_UNDEF;
+    memcpy((void*) &name[0], (void*)pinName, strlen(pinName));
+    
   } 
+
+  char* getName()
+  {       
+    return name;
+  }
 
   int setAdcProperty(analogProperties *adcP);
   float getAdcPinVal();
@@ -72,10 +82,11 @@ class inputOutput:public ioInterface, public rtcUserMemAccess
 {
   protected:
     int objectId;
+
   public:
   inputOutput()  {
   }
-  inputOutput(int pinNo, PIN_DIR dir):ioInterface(pinNo, dir){
+  inputOutput(char*pinName, int pinNo, PIN_DIR dir):ioInterface(pinName, pinNo, dir){
    objectId = objectCnt++;
   }
   int getObjId()
