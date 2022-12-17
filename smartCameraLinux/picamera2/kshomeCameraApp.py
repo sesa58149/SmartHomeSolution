@@ -64,7 +64,7 @@ class notificationService(systemLogMng):
         if rc == 0:
 
             for s in self.subList:
-                tp = self.deviceName + "/"+ s
+                tp = self.deviceName + "/" + s
                 self.mqttClient.subscribe(tp, 0)
                 print(tp)
 
@@ -80,14 +80,14 @@ class notificationService(systemLogMng):
         if self.deviceName in msgTopic:
             print("message for this device")
             for t in self.subList:
-                #print(t)
-                if self.deviceName+"/camera/motion" == msgTopic:
+                # print(t)
+                if self.deviceName + "/camera/motion" == msgTopic:
                     self.subCallbackMotion(rxMsg)
                     print(f"message from subscription:      {t}")
-                elif self.deviceName+"/camera/armed" == msgTopic:
+                elif self.deviceName + "/camera/armed" == msgTopic:
                     self.subCallbackArmed(rxMsg)
                     print(f"message from subscription:      {t}")
-                elif self.deviceName+"/resetlogfile" == msgTopic:
+                elif self.deviceName + "/resetlogfile" == msgTopic:
                     self.subCallbackResetLogFile(rxMsg)
                     print(f"message from subscription:      {t}")
                 else:
@@ -100,10 +100,10 @@ class notificationService(systemLogMng):
     def subCallbackArmed(self, rxMsg):
         if rxMsg == "ON\r\n" or rxMsg == "on\r\n" or rxMsg == "ON" or rxMsg == "on":
             self.isArmed = True
-            #print("Alrmed")
+            # print("Alrmed")
         elif rxMsg == "OFF\r\n" or rxMsg == "off\r\n" or rxMsg == "OFF" or rxMsg == "off":
             self.isArmed = False
-            #print("unalrmed")
+            # print("unalrmed")
 
     def subCallbackResetLogFile(self, rxMsg):
         if bool(rxMsg):
@@ -113,7 +113,8 @@ class notificationService(systemLogMng):
         return self.isArmed
 
     def sendNotification(self, msg):
-        self.mqttClient.publish(self.pubList[0], payload=msg, qos=0, retain=False)
+        print("pushed ", {self.deviceName + "/" + self.pubList[0]})
+        self.mqttClient.publish(self.deviceName + "/" + self.pubList[0], payload=msg, qos=0, retain=False)
 
 
 class cloudServer(systemLogMng):
@@ -195,7 +196,7 @@ class motionDetection(cloudServer):
             mse = np.square(np.subtract(self.cur, self.prev)).mean()
             if mse > MIN_PIXEL_DIFF:
                 print("New Motion", mse)
-                ioHandler.setLedState(4) # set led pattern to motion detected
+                ioHandler.setLedState(4)  # set led pattern to motion detected
                 epoch = int(time.time())
                 # circ.fileoutput = "{}.h264".format(epoch)
                 circBuf.fileoutput = HOME_DIR + "tmp.h264"
