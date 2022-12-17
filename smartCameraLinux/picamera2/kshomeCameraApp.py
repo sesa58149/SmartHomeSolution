@@ -62,27 +62,32 @@ class notificationService(systemLogMng):
         print("Client connected to the Broker")
         self.logFile("Client connected to the Broker")
         if rc == 0:
+
             for s in self.subList:
-                self.mqttClient.subscribe(s, 0)
+                tp = self.deviceName + "/"+ s
+                self.mqttClient.subscribe(tp, 0)
+                print(tp)
 
     def on_message(self, client, userdata, message):
 
         rxMsg = str(message.payload.decode("utf-8"))
         # print("message received : ", rxMsg)
         msgTopic = message.topic
-        # print("message topic : ", msgTopic)
-        # print("message qos=", message.qos)
-        # print("message retain flag=", message.retain)
+        print("message topic : ", msgTopic)
+        print("message qos=", message.qos)
+        print("message retain flag=", message.retain)
         self.logFile("Topic received")
-        for t in self.subList:
-            if msgTopic == t:
-                if t == self.deviceName + "/camera/motion":
+        if self.deviceName in msgTopic:
+            print("message for this device")
+            for t in self.subList:
+                #print(t)
+                if self.deviceName+"/camera/motion" == msgTopic:
                     self.subCallbackMotion(rxMsg)
                     print(f"message from subscription:      {t}")
-                elif t == self.deviceName + "/camera/armed":
+                elif self.deviceName+"/camera/armed" == msgTopic:
                     self.subCallbackArmed(rxMsg)
                     print(f"message from subscription:      {t}")
-                elif t == self.deviceName + "/resetlogfile":
+                elif self.deviceName+"/resetlogfile" == msgTopic:
                     self.subCallbackResetLogFile(rxMsg)
                     print(f"message from subscription:      {t}")
                 else:
@@ -95,8 +100,10 @@ class notificationService(systemLogMng):
     def subCallbackArmed(self, rxMsg):
         if rxMsg == "ON\r\n" or rxMsg == "on\r\n" or rxMsg == "ON" or rxMsg == "on":
             self.isArmed = True
+            #print("Alrmed")
         elif rxMsg == "OFF\r\n" or rxMsg == "off\r\n" or rxMsg == "OFF" or rxMsg == "off":
             self.isArmed = False
+            #print("unalrmed")
 
     def subCallbackResetLogFile(self, rxMsg):
         if bool(rxMsg):
@@ -188,6 +195,7 @@ class motionDetection(cloudServer):
             mse = np.square(np.subtract(self.cur, self.prev)).mean()
             if mse > MIN_PIXEL_DIFF:
                 print("New Motion", mse)
+                ioHandler.setLedState(4) # set led pattern to motion detected
                 epoch = int(time.time())
                 # circ.fileoutput = "{}.h264".format(epoch)
                 circBuf.fileoutput = HOME_DIR + "tmp.h264"
@@ -199,6 +207,7 @@ class motionDetection(cloudServer):
                 circBuf.stop()
                 print("Stop recording ", time.time() - self.startTime)
                 self.sendFileToCloud()
+                ioHandler.setLedState(0)  # set the led pattern to normal
                 print("capture saved on Server")
                 # wait for the MAX_PRE_DET_WINDOW_SEC to get circular buffer 1/2 vedio
                 self.startTime = time.time()

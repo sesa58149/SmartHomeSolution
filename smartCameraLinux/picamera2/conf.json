@@ -2,7 +2,7 @@
 	
 	"deviceInfo":{
 						"VendorName"		:  "KSHome",
-						"deviceName"		:  "Doorbell",
+						"deviceName"		:  "KSHomeDevice",
 						"deviceType"		:  "Advance Camera Module",
 						"minPixelDiff"		:	"15.0",
 						"maxPreDetWinSec"	:	"10"
@@ -10,8 +10,8 @@
 	"mqttInfo":{
 						"mqttBrokerAdd" 	:  "192.168.1.50",
 						"mqttBrokerPort"	:  "1883",
-						"subTopic"			:  ["doorbell/camera/motion","doorbell/camera/armed","doorbell/resetlogfile"],
-						"pubTopic"			:  ["doorbell/button"]
+						"subTopic"			:  ["camera/motion","camera/armed","resetlogfile"],
+						"pubTopic"			:  ["button"]
 	},
 	"cloudInfo": {
 						"cloudServerAdd" 	:  "KSHomePvtCloudServer.lan",
