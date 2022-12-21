@@ -6,6 +6,7 @@ import threading
 import time
 from datetime import datetime
 import numpy as np
+from pythonping import ping
 
 from picamera2 import Picamera2
 from picamera2.encoders import H264Encoder
@@ -121,19 +122,39 @@ class cloudServer(systemLogMng):
     def __init__(self, serverAdd, serverPort):
         self.add = serverAdd
         self.port = serverPort
+    
+    def isHostAvailable(self, host):
+        cnt = 0
+        retVal = False
+        while cnt < 3:
+            cnt = cnt+1
+            response = ping(host,count=1, timeout=1, size =40, verbose=False)
+            #print(response._responses[0])
+            #print(response.stats_packets_sent)
+            #print(response.stats_packets_returned)
+            if response.stats_packets_sent == 1 and response.stats_packets_returned == 1:
+                retVal = True
+                
+            else:
+                retVal =False
+        
+        return retVal
 
     def sendFileToCloud(self):
         retVal = False
         s = socket.socket()
         try:
             cctvServer = socket.gethostbyname(self.add)
-            s.connect((cctvServer, self.port))
-            cnx = s.makefile('wb')
-            lfp = open(HOME_DIR + 'tmp.h264', 'rb')
-            cnx.write(lfp.read())
-            lfp.close()
-            retVal = True
-            self.logFile('file sent to Cloud')
+            if self.isHostAvailable(cctvServer):                
+                s.connect((cctvServer, self.port))
+                cnx = s.makefile('wb')
+                lfp = open(HOME_DIR + 'tmp.h264', 'rb')
+                cnx.write(lfp.read())
+                lfp.close()
+                retVal = True
+                self.logFile('file sent to Cloud')
+            else:
+                self.logFile('file failed to sent to the Cloud')
         except socket.error as exception:
             if exception.errno == errno.ECONNREFUSED:
                 retVal = False
