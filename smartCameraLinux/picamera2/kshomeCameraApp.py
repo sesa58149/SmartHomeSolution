@@ -21,6 +21,8 @@ lsize = (320, 240)
 picam2 = Picamera2()
 circ = None
 
+fwVersion = "V 2.3.000"
+
 
 def cameraInit():
     global circ
@@ -122,22 +124,22 @@ class cloudServer(systemLogMng):
     def __init__(self, serverAdd, serverPort):
         self.add = serverAdd
         self.port = serverPort
-    
+
     def isHostAvailable(self, host):
         cnt = 0
         retVal = False
         while cnt < 3:
-            cnt = cnt+1
-            response = ping(host,count=1, timeout=1, size =40, verbose=False)
-            #print(response._responses[0])
-            #print(response.stats_packets_sent)
-            #print(response.stats_packets_returned)
+            cnt = cnt + 1
+            response = ping(host, count=1, timeout=1, size=40, verbose=False)
+            # print(response._responses[0])
+            # print(response.stats_packets_sent)
+            # print(response.stats_packets_returned)
             if response.stats_packets_sent == 1 and response.stats_packets_returned == 1:
                 retVal = True
-                
+
             else:
-                retVal =False
-        
+                retVal = False
+
         return retVal
 
     def sendFileToCloud(self):
@@ -145,7 +147,7 @@ class cloudServer(systemLogMng):
         s = socket.socket()
         try:
             cctvServer = socket.gethostbyname(self.add)
-            if self.isHostAvailable(cctvServer):                
+            if self.isHostAvailable(cctvServer):
                 s.connect((cctvServer, self.port))
                 cnx = s.makefile('wb')
                 lfp = open(HOME_DIR + 'tmp.h264', 'rb')
@@ -206,6 +208,7 @@ class motionDetection(cloudServer):
         self.startTime = 0
         self.cur = None
         self.w, self.h = lowSize
+        self.devType = cloudConf.deviceType
 
     def detect(self, camModule, circBuf):
         self.cur = camModule.capture_buffer("lores")
@@ -217,7 +220,8 @@ class motionDetection(cloudServer):
             mse = np.square(np.subtract(self.cur, self.prev)).mean()
             if mse > MIN_PIXEL_DIFF:
                 print("New Motion", mse)
-                ioHandler.setLedState(4)  # set led pattern to motion detected
+                if self.devType == "Advance Camera Module":
+                    ioHandler.setLedState(4)  # set led pattern to motion detected
                 epoch = int(time.time())
                 # circ.fileoutput = "{}.h264".format(epoch)
                 circBuf.fileoutput = HOME_DIR + "tmp.h264"
@@ -229,7 +233,8 @@ class motionDetection(cloudServer):
                 circBuf.stop()
                 print("Stop recording ", time.time() - self.startTime)
                 self.sendFileToCloud()
-                ioHandler.setLedState(0)  # set the led pattern to normal
+                if self.devType == "Advance Camera Module":
+                    ioHandler.setLedState(0)  # set the led pattern to normal
                 print("capture saved on Server")
                 # wait for the MAX_PRE_DET_WINDOW_SEC to get circular buffer 1/2 vedio
                 self.startTime = time.time()
@@ -270,7 +275,8 @@ MAX_PRE_DET_WINDOW_SEC = devConf.maxPreDetWinSec
 
 sysLog = systemLogMng()
 sysLog.logFile("Service starting ........ ")
-
+sysLog.logFile(" ***********Firmware Version ************** ")
+sysLog.logFile(fwVersion)
 cameraInit()
 
 eventClass = notificationService(devConf)
