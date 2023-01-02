@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import errno
 import os.path
 import socket
 import subprocess
@@ -159,9 +160,12 @@ class cloudServer(systemLogMng):
                 self.logFile('file failed to sent to the Cloud')
         except socket.error as exception:
             if exception.errno == errno.ECONNREFUSED:
-                retVal = False
-            # print("failed to send over NW")
-            # self.logFile('failed to send over NW')
+                print(" connection refused")
+            else:
+                print("failed to send over NW")
+
+            retVal = False
+            self.logFile('failed to send over NW')
 
         finally:
             s.close()
